@@ -8,7 +8,6 @@ namespace Uart_App
     public partial class MainWindow : Window
     {
         SerialPort _serialPort;
-        string timestamp = DateTime.Now.ToString("[yyyy-MM-dd HH:mm:ss.fff] ");
         string logFilePath = @"D:\Logs\received_data.txt"; // 指定的訊息儲存位置
 
         public MainWindow()
@@ -16,8 +15,6 @@ namespace Uart_App
             InitializeComponent();
             LoadAvailablePorts();
             LoadBaudRates();
-            // 訂閱窗口關閉事件
-            Closing += MainWindow_Closing;
         }
 
         private void LoadAvailablePorts()
@@ -74,6 +71,29 @@ namespace Uart_App
             }
         }
 
+        private void ClosePortButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_serialPort != null && _serialPort.IsOpen)
+                {
+                    _serialPort.Close();
+                    openPortButton.IsEnabled = true;
+                    closePortButton.IsEnabled = false;
+                    receivedDataTextBox.Text += "Close port！\n";
+                    DeleteLogFile(); // 關閉串口時刪除log檔案
+                }
+                else
+                {
+                    MessageBox.Show("串口未打開！");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"關閉串口時出錯：{ex.Message}");
+            }
+        }
+
         private void DeleteLogFile()
         {
             try
@@ -86,30 +106,6 @@ namespace Uart_App
             catch (Exception ex)
             {
                 MessageBox.Show($"刪除log檔案時出錯：{ex.Message}");
-            }
-        }
-
-        private void ClosePortButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_serialPort != null && _serialPort.IsOpen)
-                {
-                    _serialPort.Close();
-                    openPortButton.IsEnabled = true;
-                    closePortButton.IsEnabled = false;
-                    receivedDataTextBox.Text += "Close port！\n";
-                    DeleteLogFile(); // 關閉串口時刪除log檔案
-
-                }
-                else
-                {
-                    MessageBox.Show("串口未打開！");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"關閉串口時出錯：{ex.Message}");
             }
         }
 
@@ -149,9 +145,6 @@ namespace Uart_App
             {
                 SerialPort sp = (SerialPort)sender;
                 string dataReceived = sp.ReadExisting();
-                string timestamp = DateTime.Now.ToString("[yyyy-MM-dd HH:mm:ss.fff] ");
-                string timestampedData = $"{timestamp}{dataReceived}";// 將時間戳記添加到接收到的訊息中
-
                 Dispatcher.Invoke(() =>
                 {
                     receivedDataTextBox.Text += dataReceived;
@@ -185,39 +178,15 @@ namespace Uart_App
             }
         }
 
-        // 新增按鈕點擊事件，用於打開log檔案位置
         private void OpenLogFileButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (File.Exists(logFilePath))
-                {
-                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{logFilePath}\"");
-                }
-                else
-                {
-                    MessageBox.Show("Log file does not exist.");
-                }
+                System.Diagnostics.Process.Start("notepad.exe", logFilePath);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error opening log file location: {ex.Message}");
-            }
-        }
-
-        // 窗口关闭时删除log文件
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            try
-            {
-                if (File.Exists(logFilePath))
-                {
-                    File.Delete(logFilePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error deleting log file: {ex.Message}");
+                MessageBox.Show($"打開log檔案時出錯：{ex.Message}");
             }
         }
     }
